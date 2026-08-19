@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'services/cycle_count_database.dart';
@@ -6,6 +7,12 @@ import 'services/cycle_count_database.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const ScannerApp());
+}
+
+void disposeTextControllerAfterFrame(TextEditingController controller) {
+  SchedulerBinding.instance.addPostFrameCallback((_) {
+    controller.dispose();
+  });
 }
 
 class ScannerApp extends StatelessWidget {
@@ -83,7 +90,7 @@ class _CycleCountHomeState extends State<CycleCountHome> {
         ],
       ),
     );
-    controller.dispose();
+    disposeTextControllerAfterFrame(controller);
     if (name == null) return;
     final session = await CycleCountDatabase.instance.createSession(
       name,
@@ -251,7 +258,7 @@ class _CycleCountScreenState extends State<CycleCountScreen> {
         ],
       ),
     );
-    controller.dispose();
+    disposeTextControllerAfterFrame(controller);
     if (value != null && value.isNotEmpty) await _captureQuantity(value);
   }
 
@@ -515,12 +522,16 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   );
   bool _handled = false;
 
-  void _onDetect(BarcodeCapture capture) {
+  Future<void> _onDetect(BarcodeCapture capture) async {
     if (_handled || capture.barcodes.isEmpty) return;
     final value = capture.barcodes.first.rawValue?.trim();
     if (value == null || value.isEmpty) return;
     _handled = true;
-    Navigator.pop(context, value);
+    await _controller.stop();
+    if (!mounted) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.of(context).pop(value);
+    });
   }
 
   @override
