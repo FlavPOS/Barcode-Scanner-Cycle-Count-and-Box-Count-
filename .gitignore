@@ -68,3 +68,8 @@ update_excel_dynamic_qty_columns.sh
 add_reopen_continue_history_search.sh
 fix_lifecycle_and_build_v011.sh
 RELEASE_NOTES_v0.1.0.md
+backups/
+release-assets/
+audit_reports/
+install_box_count_phase1.sh
+fix_box_count_phase1_integration.sh

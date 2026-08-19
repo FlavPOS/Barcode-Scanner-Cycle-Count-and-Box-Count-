@@ -1,3 +1,5 @@
+import 'box_count/box_count_module.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -135,7 +137,19 @@ class _CycleCountHomeState extends State<CycleCountHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('SCANNER APP')),
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            tooltip: 'Box Count',
+            icon: const Icon(Icons.inventory_2_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BoxCountHome()),
+            ),
+          ),
+        ],
+        title: const Text('SCANNER APP'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
