@@ -51,3 +51,4 @@ backups/
 *.damaged.*
 install_cycle_count_phase1.sh
 install_cycle_count_separate_scans.sh
+release-assets/
