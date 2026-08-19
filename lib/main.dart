@@ -294,12 +294,12 @@ class _CycleCountScreenState extends State<CycleCountScreen> {
   Future<void> _captureQuantity(String barcode) async {
     final previous = _records.where((row) => row.barcode == barcode).toList();
     final previousTotal = previous.fold<int>(0, (sum, row) => sum + row.qty);
-    final qtyController = TextEditingController();
+    var quantityText = '';
 
     final qty = await showDialog<int>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(previous.isEmpty ? 'COUNTED QTY' : 'SAVE ANOTHER SCAN'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -318,34 +318,60 @@ class _CycleCountScreenState extends State<CycleCountScreen> {
               const Text('The new quantity will be saved separately.'),
             ],
             const SizedBox(height: 20),
-            TextField(
-              controller: qtyController,
+            TextFormField(
               autofocus: true,
               keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
                 labelText: 'Qty for This Scan',
                 border: OutlineInputBorder(),
               ),
-              onSubmitted: (_) => _submitQty(context, qtyController),
+              onChanged: (value) => quantityText = value,
+              onFieldSubmitted: (value) {
+                final parsed = int.tryParse(value.trim());
+                if (parsed == null || parsed <= 0) return;
+                FocusManager.instance.primaryFocus?.unfocus();
+                Navigator.of(dialogContext).pop(parsed);
+              },
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.of(dialogContext).pop();
+            },
             child: const Text('CANCEL'),
           ),
           FilledButton(
-            onPressed: () => _submitQty(context, qtyController),
+            onPressed: () {
+              final parsed = int.tryParse(quantityText.trim());
+              if (parsed == null || parsed <= 0) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Enter a quantity greater than zero.'),
+                  ),
+                );
+                return;
+              }
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.of(dialogContext).pop(parsed);
+            },
             child: const Text('SAVE NEW SCAN'),
           ),
         ],
       ),
     );
-    qtyController.dispose();
-    if (qty == null) return;
+
+    if (qty == null || !mounted) return;
+
+    // Let the keyboard and dialog route finish deactivating before rebuilding
+    // the Cycle Count list. This avoids overlapping inherited-widget teardown.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
 
     await CycleCountDatabase.instance.insertRecord(
       sessionId: widget.session.id,
@@ -362,20 +388,6 @@ class _CycleCountScreenState extends State<CycleCountScreen> {
         ),
       ),
     );
-  }
-
-  void _submitQty(
-    BuildContext dialogContext,
-    TextEditingController controller,
-  ) {
-    final qty = int.tryParse(controller.text.trim());
-    if (qty == null || qty <= 0) {
-      ScaffoldMessenger.of(dialogContext).showSnackBar(
-        const SnackBar(content: Text('Enter a quantity greater than zero.')),
-      );
-      return;
-    }
-    Navigator.pop(dialogContext, qty);
   }
 
   Future<void> _finish() async {
