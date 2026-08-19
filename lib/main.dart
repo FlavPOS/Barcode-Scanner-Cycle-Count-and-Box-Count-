@@ -256,6 +256,8 @@ class _CycleCountScreenState extends State<CycleCountScreen> {
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );
     if (barcode == null || !mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
     await _captureQuantity(barcode);
   }
 
@@ -532,83 +534,134 @@ class BarcodeScannerScreen extends StatefulWidget {
   State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
 }
 
-class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back,
-    formats: const [
-      BarcodeFormat.ean13,
-      BarcodeFormat.ean8,
-      BarcodeFormat.upcA,
-      BarcodeFormat.upcE,
-      BarcodeFormat.code128,
-      BarcodeFormat.code39,
-      BarcodeFormat.itf14,
-      BarcodeFormat.qrCode,
-    ],
-  );
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
+    with WidgetsBindingObserver {
+  late final MobileScannerController _controller;
   bool _handled = false;
+  bool _leaving = false;
 
-  Future<void> _onDetect(BarcodeCapture capture) async {
-    if (_handled || capture.barcodes.isEmpty) return;
-    final value = capture.barcodes.first.rawValue?.trim();
-    if (value == null || value.isEmpty) return;
-    _handled = true;
-    await _controller.stop();
-    if (!mounted) return;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (mounted) Navigator.of(context).pop(value);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _controller = MobileScannerController(
+      autoStart: false,
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      facing: CameraFacing.back,
+      formats: const [
+        BarcodeFormat.ean13,
+        BarcodeFormat.ean8,
+        BarcodeFormat.upcA,
+        BarcodeFormat.upcE,
+        BarcodeFormat.code128,
+        BarcodeFormat.code39,
+        BarcodeFormat.itf14,
+        BarcodeFormat.qrCode,
+      ],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _leaving) return;
+      await _controller.start();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_leaving) return;
+    if (state == AppLifecycleState.resumed) {
+      _controller.start();
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      _controller.stop();
+    }
+  }
+
+  Future<void> _onDetect(BarcodeCapture capture) async {
+    if (_handled || _leaving || capture.barcodes.isEmpty) return;
+    final value = capture.barcodes.first.rawValue?.trim();
+    if (value == null || value.isEmpty) return;
+
+    _handled = true;
+    _leaving = true;
+    await _controller.stop();
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+
+    if (!mounted) return;
+    Navigator.of(context).pop(value);
+  }
+
+  Future<bool> _onBackRequested() async {
+    if (_leaving) return false;
+    _leaving = true;
+    await _controller.stop();
+    return true;
+  }
+
+  @override
   void dispose() {
+    _leaving = true;
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('SCAN BARCODE'),
-        actions: [
-          IconButton(
-            onPressed: _controller.toggleTorch,
-            icon: const Icon(Icons.flash_on),
-          ),
-          IconButton(
-            onPressed: _controller.switchCamera,
-            icon: const Icon(Icons.cameraswitch),
-          ),
-        ],
-      ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
-          Center(
-            child: Container(
-              width: 300,
-              height: 170,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.greenAccent, width: 3),
-                borderRadius: BorderRadius.circular(18),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final canLeave = await _onBackRequested();
+        if (!context.mounted || !canLeave) return;
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          title: const Text('SCAN BARCODE'),
+          actions: [
+            IconButton(
+              onPressed: _leaving ? null : _controller.toggleTorch,
+              icon: const Icon(Icons.flash_on),
+            ),
+            IconButton(
+              onPressed: _leaving ? null : _controller.switchCamera,
+              icon: const Icon(Icons.cameraswitch),
+            ),
+          ],
+        ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            MobileScanner(controller: _controller, onDetect: _onDetect),
+            IgnorePointer(
+              child: Center(
+                child: Container(
+                  width: 300,
+                  height: 170,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.greenAccent, width: 3),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
               ),
             ),
-          ),
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.all(28),
-              child: Text(
-                'Place the barcode inside the frame',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+            const IgnorePointer(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: EdgeInsets.all(28),
+                  child: Text(
+                    'Place the barcode inside the frame',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
