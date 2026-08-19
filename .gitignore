@@ -59,3 +59,12 @@ add_history_excel_download.sh
 continue_history_excel_fix.sh
 fix_lifecycle_and_build_v011.sh
 RELEASE_NOTES_v0.1.0.md
+backups/
+release-assets/
+setup_flutter_web_debug.sh
+add_history_excel_download.sh
+continue_history_excel_fix.sh
+update_excel_dynamic_qty_columns.sh
+add_reopen_continue_history_search.sh
+fix_lifecycle_and_build_v011.sh
+RELEASE_NOTES_v0.1.0.md

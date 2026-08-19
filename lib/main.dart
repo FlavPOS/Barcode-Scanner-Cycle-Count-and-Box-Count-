@@ -117,6 +117,21 @@ class _CycleCountHomeState extends State<CycleCountHome> {
     await _load();
   }
 
+  Future<void> _openHistory() async {
+    final selectedSession = await Navigator.push<CycleSession>(
+      context,
+      MaterialPageRoute(builder: (_) => const CycleCountHistoryScreen()),
+    );
+    if (selectedSession == null || !mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CycleCountScreen(session: selectedSession),
+      ),
+    );
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -192,12 +207,7 @@ class _CycleCountHomeState extends State<CycleCountHome> {
                     ),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CycleCountHistoryScreen(),
-                      ),
-                    ),
+                    onPressed: _openHistory,
                     icon: const Icon(Icons.history),
                     label: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),

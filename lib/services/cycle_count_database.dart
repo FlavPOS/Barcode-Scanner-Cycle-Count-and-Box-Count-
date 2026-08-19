@@ -140,6 +140,41 @@ class CycleCountDatabase {
     };
   }
 
+  Future<void> reopenSession(String sessionId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // Keep only one active Cycle Count session at a time.
+      await txn.update(
+        'cycle_sessions',
+        {'status': 'FINISHED'},
+        where: 'status = ? AND id != ?',
+        whereArgs: ['ACTIVE', sessionId],
+      );
+      await txn.update(
+        'cycle_sessions',
+        {'status': 'ACTIVE', 'end_time': null},
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+    });
+  }
+
+  Future<List<CycleSession>> searchSessions(String searchText) async {
+    final db = await database;
+    final query = searchText.trim();
+    if (query.isEmpty) return allSessions();
+    final pattern = '%$query%';
+    final rows = await db.rawQuery(
+      'SELECT DISTINCT s.* FROM cycle_sessions s '
+      'LEFT JOIN cycle_records r ON r.session_id = s.id '
+      'WHERE s.id LIKE ? OR s.name LIKE ? OR s.date LIKE ? '
+      'OR s.status LIKE ? OR r.barcode LIKE ? '
+      'ORDER BY s.date DESC, s.start_time DESC',
+      [pattern, pattern, pattern, pattern, pattern],
+    );
+    return rows.map(CycleSession.fromMap).toList();
+  }
+
   Future<CycleSession?> getActiveSession() async {
     final db = await database;
     final rows = await db.query(
