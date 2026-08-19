@@ -52,3 +52,10 @@ backups/
 install_cycle_count_phase1.sh
 install_cycle_count_separate_scans.sh
 release-assets/
+backups/
+release-assets/
+setup_flutter_web_debug.sh
+add_history_excel_download.sh
+continue_history_excel_fix.sh
+fix_lifecycle_and_build_v011.sh
+RELEASE_NOTES_v0.1.0.md

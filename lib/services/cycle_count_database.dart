@@ -1,5 +1,6 @@
-import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+
+import '../platform/database_platform.dart';
 
 class CycleSession {
   const CycleSession({
@@ -63,7 +64,7 @@ class CycleCountDatabase {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    final path = join(await getDatabasesPath(), 'barcode_count.db');
+    final path = await resolveDatabasePath();
     _database = await openDatabase(
       path,
       version: 2,
@@ -114,6 +115,29 @@ class CycleCountDatabase {
       },
     );
     return _database!;
+  }
+
+  Future<List<CycleSession>> allSessions() async {
+    final db = await database;
+    final rows = await db.query(
+      'cycle_sessions',
+      orderBy: 'date DESC, start_time DESC',
+    );
+    return rows.map(CycleSession.fromMap).toList();
+  }
+
+  Future<Map<String, int>> sessionTotals(String sessionId) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      'SELECT COUNT(*) AS scan_count, COALESCE(SUM(qty), 0) AS total_qty '
+      'FROM cycle_records WHERE session_id = ?',
+      [sessionId],
+    );
+    final row = rows.first;
+    return {
+      'scan_count': (row['scan_count'] as num).toInt(),
+      'total_qty': (row['total_qty'] as num).toInt(),
+    };
   }
 
   Future<CycleSession?> getActiveSession() async {

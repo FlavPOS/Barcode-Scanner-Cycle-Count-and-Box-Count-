@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import 'platform/database_platform.dart';
+import 'screens/cycle_count_history_screen.dart';
 import 'services/cycle_count_database.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  configureDatabasePlatform();
   runApp(const ScannerApp());
 }
 
@@ -187,6 +190,20 @@ class _CycleCountHomeState extends State<CycleCountHome> {
                         child: Text('START CYCLE COUNT'),
                       ),
                     ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CycleCountHistoryScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.history),
+                    label: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Text('CYCLE COUNT HISTORY'),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -44,6 +44,8 @@ dependencies:
   shared_preferences: ^2.5.5
   vibration: ^3.2.0
   audioplayers: ^6.8.1
+  sqflite_common_ffi_web: ^1.1.2
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:
