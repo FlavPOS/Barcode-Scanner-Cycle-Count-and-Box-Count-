@@ -276,6 +276,24 @@ class CycleCountDatabase {
     });
   }
 
+  Future<void> updateScanQuantity({
+    required int recordId,
+    required int quantity,
+  }) async {
+    final db = await database;
+    await db.update(
+      'cycle_records',
+      {'qty': quantity},
+      where: 'id = ?',
+      whereArgs: [recordId],
+    );
+  }
+
+  Future<void> deleteScan(int recordId) async {
+    final db = await database;
+    await db.delete('cycle_records', where: 'id = ?', whereArgs: [recordId]);
+  }
+
   String _two(int value) => value.toString().padLeft(2, '0');
   String _date(DateTime value) =>
       '${value.year}-${_two(value.month)}-${_two(value.day)}';

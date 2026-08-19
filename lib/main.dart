@@ -230,6 +230,8 @@ class CycleCountScreen extends StatefulWidget {
 }
 
 class _CycleCountScreenState extends State<CycleCountScreen> {
+  int? _lastTappedRecordId;
+  DateTime? _lastRecordTapAt;
   List<CycleRecord> _records = [];
   bool _loading = true;
 
@@ -390,6 +392,105 @@ class _CycleCountScreenState extends State<CycleCountScreen> {
     );
   }
 
+  void _handleRecordTap(CycleRecord record) {
+    final now = DateTime.now();
+    final isDoubleTap =
+        _lastTappedRecordId == record.id &&
+        _lastRecordTapAt != null &&
+        now.difference(_lastRecordTapAt!) <= const Duration(milliseconds: 400);
+
+    _lastTappedRecordId = record.id;
+    _lastRecordTapAt = now;
+
+    if (isDoubleTap) {
+      _lastTappedRecordId = null;
+      _lastRecordTapAt = null;
+      _editRecordQuantity(record);
+    }
+  }
+
+  Future<void> _editRecordQuantity(CycleRecord record) async {
+    var quantityText = record.qty.toString();
+    final newQuantity = await showDialog<int>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(record.barcode),
+        content: TextFormField(
+          initialValue: record.qty.toString(),
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          decoration: const InputDecoration(
+            labelText: 'Correct Qty',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (value) => quantityText = value,
+          onFieldSubmitted: (value) {
+            final parsed = int.tryParse(value.trim());
+            if (parsed == null || parsed <= 0) return;
+            FocusManager.instance.primaryFocus?.unfocus();
+            Navigator.of(dialogContext).pop(parsed);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = int.tryParse(quantityText.trim());
+              if (parsed == null || parsed <= 0) return;
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.of(dialogContext).pop(parsed);
+            },
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
+    if (newQuantity == null || !mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    await CycleCountDatabase.instance.updateScanQuantity(
+      recordId: record.id,
+      quantity: newQuantity,
+    );
+    await _loadRecords();
+  }
+
+  Future<void> _deleteRecord(CycleRecord record) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(record.barcode),
+        content: Text('Remove this scan with Qty ${record.qty}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('REMOVE'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    await CycleCountDatabase.instance.deleteScan(record.id);
+    await _loadRecords();
+  }
+
   Future<void> _finish() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -470,6 +571,8 @@ class _CycleCountScreenState extends State<CycleCountScreen> {
                       return Card(
                         color: Colors.white,
                         child: ListTile(
+                          onTap: () => _handleRecordTap(row),
+                          onLongPress: () => _deleteRecord(row),
                           leading: const Icon(Icons.qr_code_2),
                           title: Text(
                             row.barcode,
