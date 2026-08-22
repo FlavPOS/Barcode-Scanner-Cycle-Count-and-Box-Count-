@@ -62,3 +62,4 @@ fix_persistent_dependents_assertion.sh
 fix_save_new_scan_dialog_assertion.sh
 full_audit_cycle_count.sh
 full_audit_cycle_count.sh.before_scanindex_fix.*
+.firebase/
