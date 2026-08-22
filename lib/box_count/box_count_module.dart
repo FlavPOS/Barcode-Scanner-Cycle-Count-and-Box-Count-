@@ -755,6 +755,15 @@ class _BoxCountHomeState extends State<BoxCountHome> {
               _ExpectedTable(byType: upload!.byType),
             ],
             const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: upload?.valid == true ? saveForLater : null,
+              icon: const Icon(Icons.save_outlined),
+              label: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('SAVE BOX LIST FOR LATER'),
+              ),
+            ),
+            const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: upload?.valid == true ? start : null,
               icon: const Icon(Icons.play_arrow),

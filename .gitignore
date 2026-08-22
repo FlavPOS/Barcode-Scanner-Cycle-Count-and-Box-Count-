@@ -71,3 +71,8 @@ fix_file_picker_web_pickfiles.sh
 add_save_box_list_for_later.sh
 add_save_box_list_for_later_v2.sh
 add_save_box_list_for_later_v3.sh
+fix_box_count_excel_module_*arse.sh
+fix_box_upload_picke*_loading.sh
+fix_file_picker_*eb_pickfiles.sh
+add_save_box*list_for_later.sh
+add_save_b*x_list_for_later_v2.sh
