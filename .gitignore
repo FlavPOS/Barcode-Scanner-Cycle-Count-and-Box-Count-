@@ -63,3 +63,11 @@ fix_save_new_scan_dialog_assertion.sh
 full_audit_cycle_count.sh
 full_audit_cycle_count.sh.before_scanindex_fix.*
 .firebase/
+enhance_box_count_excel_validation.sh
+enhance_box_count_excel_validation.sh.before_file_picker_fix.*
+fix_box_count_excel_module_parse.sh
+fix_box_upload_picker_loading.sh
+fix_file_picker_web_pickfiles.sh
+add_save_box_list_for_later.sh
+add_save_box_list_for_later_v2.sh
+add_save_box_list_for_later_v3.sh
